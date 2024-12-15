@@ -1,0 +1,23 @@
+{
+  "name": "focustube-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "./ index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/USANJAY05/FocusTube-Backend.git"
+  },
+  "author": "USANJAY05",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/USANJAY05/FocusTube-Backend/issues"
+  },
+  "homepage": "https://github.com/USANJAY05/FocusTube-Backend#readme",
+  "description": "",
+  "dependencies": {
+    "express": "^4.21.2",
+    "nodemon": "^3.1.9"
+  }
+}
