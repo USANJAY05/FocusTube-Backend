@@ -7,7 +7,7 @@ const connection = process.env.MONGODB_URI;
 const client = new mongodb.MongoClient(connection);
 
 const app = express();
-app.use(bodyParser.json()); 
+app.use(express.json()); 
 
 let authData;
 
