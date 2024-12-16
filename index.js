@@ -3,11 +3,11 @@ require('dotenv').config();
 const mongodb = require('mongodb');
 const bodyParser = require('body-parser'); // Middleware to parse JSON data
 
-const connection = process.env.MONGODB_URI || "mongodb://localhost:27017"; // MongoDB connection string
+const connection = process.env.MONGODB_URI;
 const client = new mongodb.MongoClient(connection);
 
 const app = express();
-app.use(bodyParser.json()); // Parse incoming JSON requests
+app.use(bodyParser.json()); 
 
 let authData;
 
