@@ -1,7 +1,7 @@
 const express = require('express');
 require('dotenv').config();
 const mongodb = require('mongodb');
-const bodyParser = require('body-parser'); // Middleware to parse JSON data
+const bodyParser = require('body-parser');
 
 const connection = process.env.MONGODB_URI;
 const client = new mongodb.MongoClient(connection);
@@ -24,22 +24,29 @@ client.connect()
 // Signup Route
 app.post('/signup', async (req, res) => {
     try {
-        const { email, password } = req.body; // Get email and password from request body
+        const { email, password } = req.body; 
 
         // Validate input
         if (!email || !password) {
             return res.status(400).send('Email and password are required');
         }
 
-        // Insert user data into the database
-        const result = await authData.insertOne({ email, password });
+        // Check if the email already exists in the database
+        const existingUser = await authData.findOne({ email });
+        if (existingUser) {
+            return res.status(400).send('Email already registered');
+        }
 
+        // Insert the new user data
+        const result = await authData.insertOne({ email, password });
         res.status(201).send(`User created with ID: ${result.insertedId}`);
+
     } catch (error) {
         console.error('Error during signup:', error);
         res.status(500).send('Internal Server Error');
     }
 });
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
