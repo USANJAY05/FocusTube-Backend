@@ -1,7 +1,6 @@
 const express = require('express');
 require('dotenv').config();
 const mongodb = require('mongodb');
-const bodyParser = require('body-parser');
 
 const connection = process.env.MONGODB_URI;
 const client = new mongodb.MongoClient(connection);
@@ -9,13 +8,18 @@ const client = new mongodb.MongoClient(connection);
 const app = express();
 app.use(express.json()); 
 
-let authData;
+let authData, likedVideos, subscriptions, watchLater, history, playlist;
 
 client.connect()
     .then(() => {
         console.log('Database connected');
         const db = client.db('focusTube');
         authData = db.collection('authData');
+        likedVideos = db.collection("likedVideos");
+        subscriptions = db.collection("subscriptions");
+        watchLater = db.collection("watchLater");
+        history = db.collection("history");
+        playlist = db.collection("playlist")
     })
     .catch((error) => {
         console.log('Database connection error:', error);
@@ -39,7 +43,15 @@ app.post('/signup', async (req, res) => {
 
         // Insert the new user data
         const result = await authData.insertOne({ email, password });
-        res.status(201).send(`User created with ID: ${result.insertedId}`);
+        const userId = result.insertedId;
+
+        await likedVideos.insertOne({userId, likedVideos:[]});
+        await subscriptions.insertOne({userId, subscriptions:[]});
+        await watchLater.insertOne({userId, watchLater:[]});
+        await history.insertOne({userId, history:[]});
+        await playlist.insertOne({userId, playlist:[]});
+
+        res.status(201).send(`User created with ID: ${userId}`);
 
     } catch (error) {
         console.error('Error during signup:', error);
@@ -48,7 +60,7 @@ app.post('/signup', async (req, res) => {
 });
 
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
 });
