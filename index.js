@@ -53,12 +53,13 @@ app.post('/signup', checkDbConnection, async (req, res) => {
 
         // Insert the new user data
         const result = await authData.insertOne({ name, img, email });
-        const userId = result.insertedId;
+        const userId = result.insertedId.toString();
 
         // Initialize user-specific data
         await userData.insertOne({
             userId,
             likedVideos: [],
+            dislikedVideos:[],
             history: [],
             watchLater: [],
             subscriptions: [],
@@ -74,6 +75,64 @@ app.post('/signup', checkDbConnection, async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
+app.post('/like', async (req, res) => {
+    try {
+        const { userId, videoId, status } = req.body;
+
+        // Validate input
+        if (!userId || !videoId || !['like', 'dislike'].includes(status)) {
+            return res.status(400).json({ status: 'Invalid input data' });
+        }
+
+        // Check if the user data already exists
+        const userRecord = await userData.findOne({ userId });
+
+        if (!userRecord) {
+            return res.status(404).json({message:"User not found"})
+        }
+
+        // Determine the field to update (likedVideos or dislikedVideos)
+        const updateField = status === 'like' ? 'likedVideos' : 'dislikedVideos';
+        const oppositeField = status === 'like' ? 'dislikedVideos' : 'likedVideos';
+
+        // Remove the videoId from the opposite field if it exists
+        await userData.updateOne(
+            { userId },
+            { $pull: { [oppositeField]: videoId } }
+        );
+
+        // Check if the videoId already exists in the target field
+        const isAlreadyLikedOrDisliked = await userData.findOne({
+            userId,
+            [updateField]: videoId,
+        });
+
+        if (isAlreadyLikedOrDisliked) {
+            // Remove the videoId from the target field
+            await userData.updateOne(
+                { userId },
+                { $pull: { [updateField]: videoId } }
+            );
+            return res.status(200).json({ status: `${status} removed successfully` });
+        }
+
+        // Add the videoId to the target field
+        await userData.updateOne(
+            { userId },
+            { $addToSet: { [updateField]: videoId } } // Avoid duplicate entries
+        );
+
+        res.status(201).json({ status: `${status} added successfully` });
+
+    } catch (error) {
+        console.error('Error during like/dislike:', error);
+        res.status(500).json({ status: 'An error occurred', error: error.message });
+    }
+});
+
+
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
