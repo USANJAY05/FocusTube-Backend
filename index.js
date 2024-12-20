@@ -132,6 +132,40 @@ app.post('/like', async (req, res) => {
 });
 
 
+app.post('/history', async (req, res) => {
+    try {
+        const { userId, videoId } = req.body;
+        const updateField = "history";
+
+        // Validate input
+        if (!userId || !videoId) {
+            return res.status(400).json({ status: 'Invalid input data' });
+        }
+
+        // Get the server's current time
+        const time = new Date().toISOString(); // ISO string format
+
+        // Check if the user data already exists
+        const userRecord = await userData.findOne({ userId });
+
+        if (!userRecord) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Add the videoId and server-generated time to the history field
+        await userData.updateOne(
+            { userId },
+            { $addToSet: { [updateField]: { videoId, time } } }
+        );
+
+        res.status(201).json({ status: 'Video added to history successfully' });
+
+    } catch (error) {
+        console.error('Error during history update:', error);
+        res.status(500).json({ status: 'An error occurred', error: error.message });
+    }
+});
+
 
 
 const PORT = process.env.PORT || 3000;
