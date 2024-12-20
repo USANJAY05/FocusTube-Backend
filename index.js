@@ -167,6 +167,56 @@ app.post('/history', async (req, res) => {
 });
 
 
+app.post('/subscription', async (req, res) => {
+    try {
+        const { userId, channelId } = req.body;
+
+        // Validate input
+        if (!userId || !channelId) {
+            return res.status(400).json({ status: 'Invalid input data' });
+        }
+
+        // Check if the user data already exists
+        const userRecord = await userData.findOne({ userId });
+
+        if (!userRecord) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Define the field to update (subscriptions)
+        const updateField = "subscriptions";
+
+        // Check if the user is already subscribed to the channel
+        const isAlreadySubscribed = await userData.findOne({
+            userId,
+            [updateField]: channelId,
+        });
+
+        if (isAlreadySubscribed) {
+            // Unsubscribe (remove channelId from the subscriptions field)
+            await userData.updateOne(
+                { userId },
+                { $pull: { [updateField]: channelId } }
+            );
+            return res.status(200).json({ status: `Unsubscribed from channel ${channelId} successfully` });
+        }
+
+        // Subscribe (add the channelId to the subscriptions field)
+        await userData.updateOne(
+            { userId },
+            { $addToSet: { [updateField]: channelId } } // Avoid duplicate entries
+        );
+
+        res.status(201).json({ status: `Subscribed to channel ${channelId} successfully` });
+
+    } catch (error) {
+        console.error('Error during subscription/unsubscription:', error);
+        res.status(500).json({ status: 'An error occurred', error: error.message });
+    }
+});
+
+
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
