@@ -302,6 +302,31 @@ app.get('/search', async (req, res) => {
     }
 });
 
+app.get('/videoCategories', async (req, res) => {
+    try {
+        // Set the parameters to fetch video categories for a specific region (India in this case)
+        const { regionCode = 'IN' } = req.query;  // Default to 'IN' for India if no region is provided
+        const response = await fetch(
+            `https://www.googleapis.com/youtube/v3/videoCategories?part=snippet&regionCode=${regionCode}&key=${process.env.API_KEY}`
+        );
+
+        if (!response.ok) {
+            return res.status(response.status).json({ error: 'Failed to fetch video categories from the API' });
+        }
+
+        const data = await response.json(); // Parse the response
+
+        // Respond with the fetched video categories
+        res.status(200).json({
+            message: 'Video categories fetched successfully',
+            categories: data.items || [],
+        });
+    } catch (error) {
+        console.error('Error fetching video categories:', error);
+        res.status(500).json({ error: 'An internal server error occurred' });
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
