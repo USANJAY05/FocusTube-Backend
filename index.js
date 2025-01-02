@@ -223,6 +223,29 @@ app.get('/channel/:channelId', async (req, res) => {
         }
 
         const response = await fetch(
+            `${process.env.API_URL}/channels?part=snippet%2CcontentDetails%2Cstatistics&id=${channelId}&key=${process.env.API_KEY}`
+        );
+
+        if (!response.ok) {
+            return res.status(response.status).json({ error: "Failed to fetch data from the API" });
+        }
+
+        const data = await response.json(); // Parse the JSON response
+        return res.status(200).json(data); // Send the parsed data as JSON
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: "An internal server error occurred" });
+    }
+});
+
+app.get('/video/:videoId', async (req, res) => {
+    try {
+        const { channelId } = req.params; // Extract channelId from URL parameters
+        if (!channelId) {
+            return res.status(400).json({ error: "videoId is required" });
+        }
+
+        const response = await fetch(
             `${process.env.API_URL}/videos?part=snippet,contentDetails,statistics&id=${channelId}&key=${process.env.API_KEY}`
         );
 
