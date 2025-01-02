@@ -132,41 +132,6 @@ app.post('/like', async (req, res) => {
 });
 
 
-app.post('/video', async (req, res) => {
-    try {
-        const { userId, videoId } = req.body;
-        const updateField = "history";
-
-        // Validate input
-        if (!userId || !videoId) {
-            return res.status(400).json({ status: 'Invalid input data' });
-        }
-
-        // Get the server's current time
-        const time = new Date().toISOString(); // ISO string format
-
-        // Check if the user data already exists
-        const userRecord = await userData.findOne({ userId });
-
-        if (!userRecord) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        // Add the videoId and server-generated time to the history field
-        await userData.updateOne(
-            { userId },
-            { $addToSet: { [updateField]: { videoId, time } } }
-        );
-
-        res.status(201).json({ status: 'Video added to history successfully' });
-
-    } catch (error) {
-        console.error('Error during history update:', error);
-        res.status(500).json({ status: 'An error occurred', error: error.message });
-    }
-});
-
-
 app.post('/subscription', async (req, res) => {
     try {
         const { userId, channelId } = req.body;
@@ -238,26 +203,74 @@ app.get('/channel/:channelId', async (req, res) => {
     }
 });
 
-app.get('/video/:videoId', async (req, res) => {
+app.post('/video/:videoId', async (req, res) => {
     try {
-        const { channelId } = req.params; // Extract channelId from URL parameters
-        if (!channelId) {
-            return res.status(400).json({ error: "videoId is required" });
+        const { videoId } = req.params; // Extract videoId from URL parameters
+        const { userId } = req.body; // Extract userId from request body
+
+        // Validate input
+        if (!userId || !videoId) {
+            return res.status(400).json({ error: 'UserId and videoId are required' });
         }
 
+        // Fetch video details from external API
         const response = await fetch(
-            `${process.env.API_URL}/videos?part=snippet,contentDetails,statistics&id=${channelId}&key=${process.env.API_KEY}`
+            `${process.env.API_URL}/videos?part=snippet,contentDetails,statistics&id=${videoId}&key=${process.env.API_KEY}`
         );
 
         if (!response.ok) {
-            return res.status(response.status).json({ error: "Failed to fetch data from the API" });
+            return res.status(response.status).json({ error: 'Failed to fetch video data from the API' });
         }
 
-        const data = await response.json(); // Parse the JSON response
-        return res.status(200).json(data); // Send the parsed data as JSON
+        const videoData = await response.json(); // Parse the API response
+
+        // Add the video to the user's history in the database
+        const time = new Date().toISOString(); // Server-generated time
+        const userRecord = await userData.findOne({ userId });
+
+        if (!userRecord) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        await userData.updateOne(
+            { userId },
+            { $addToSet: { history: { videoId, time, details: videoData.items[0] } } }
+        );
+
+        // Respond with the fetched video data
+        res.status(200).json({ message: 'Video data fetched and saved to history', videoData: videoData.items[0] });
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: "An internal server error occurred" });
+        console.error('Error processing video request:', error);
+        res.status(500).json({ error: 'An internal server error occurred' });
+    }
+});
+
+// Fetch History Route
+app.get('/history/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        // Validate input
+        if (!userId) {
+            return res.status(400).json({ error: 'UserId is required' });
+        }
+
+        // Check if the user exists
+        const userRecord = await userData.findOne({ userId });
+        if (!userRecord) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Retrieve the user's history
+        const history = userRecord.history || [];
+
+        res.status(200).json({
+            message: 'History fetched successfully',
+            history,
+        });
+    } catch (error) {
+        console.error('Error fetching history:', error);
+        res.status(500).json({ error: 'An internal server error occurred' });
     }
 });
 
