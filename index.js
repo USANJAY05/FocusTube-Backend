@@ -274,6 +274,34 @@ app.get('/history/:userId', async (req, res) => {
     }
 });
 
+app.get('/search', async (req, res) => {
+    try {
+        const { query } = req.query; // Extract the query from the request query parameters
+
+        // Validate input
+        if (!query) {
+            return res.status(400).json({ error: 'Search query is required' });
+        }
+
+        // Fetch data from the YouTube API
+        const response = await fetch(
+            `${process.env.API_URL}/search?part=snippet&q=${encodeURIComponent(query)}&maxResults=5&key=${process.env.API_KEY}`
+        );
+
+        if (!response.ok) {
+            return res.status(response.status).json({ error: 'Failed to fetch video data from the API' });
+        }
+
+        const data = await response.json(); // Parse the response
+
+        // Respond with the search results
+        res.status(200).json({ message: 'Videos fetched successfully', items: data.items || [] });
+    } catch (error) {
+        console.error('Error searching videos:', error);
+        res.status(500).json({ error: 'An internal server error occurred' });
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
